@@ -3,7 +3,7 @@ title: "Binding a Domain Identifier to Telephone Number Authority in STIR Certif
 abbrev: "STIR TN-Domain Binding"
 category: std
 
-docname: draft-wendt-stir-tn-domain-binding-00
+docname: draft-wendt-stir-tn-domain-binding-latest
 submissiontype: IETF
 number:
 date:
