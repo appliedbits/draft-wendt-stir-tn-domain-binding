@@ -122,7 +122,7 @@ Phase 1 establishes control of the domain identifier. Phase 2 establishes TNAuth
    +--------------------------+
 ~~~
 
-## Phase 1: Domain control
+## Phase 1: Domain control {#phase1-domain-control}
 
 The subject proves control of the domain identifier that will appear in the SubjectAltName. This document does not define a new mechanism for this; it reuses domain control validation as already deployed for the Web PKI. The challenge types defined for ACME {{RFC8555}} are directly applicable:
 
@@ -130,6 +130,8 @@ The subject proves control of the domain identifier that will appear in the Subj
 - http-01: the subject serves a key-authorization value at a well-known path under the domain. This proves control of content served at the domain.
 
 Either challenge is sufficient on its own. The choice follows existing ACME practice and is operational.
+
+Domain control verification is an explicit, cryptographically demonstrable signal. The operational act of provisioning the required records in public DNS, or serving the required content under the domain, demonstrates current authorized control of the domain by the party performing it. This is distinct from the broader entity verification, often referred to as know-your-customer (KYC), through which a provider or authority establishes and periodically re-validates the customer relationship that associates a real-world entity with its domain. That work is important and assumed to take place, but it is out of scope here and is neither defined nor replaced by this document. Where KYC establishes that association in the first place, domain control is the strongest explicit signal that the association remains genuine and currently authorized, because it can be cryptographically demonstrated and re-checked at each issuance. This document relies on domain control and telephone number authority as those explicit signals, while depending on, rather than specifying, the entity verification they rest on.
 
 ## Phase 2: TNAuthList authority
 
@@ -275,7 +277,7 @@ When a relying party obtains the certificate by retrieving it from a location un
 
 The security of the binding depends on the issuing CA performing both validations within a single issuance. The central guarantee is that a relying party need not trust the subject's self-assertion of either domain control or TNAuthList authority; it relies instead on the CA having validated both and bound them in a transparency-logged certificate. An issuer that issued a certificate carrying a domain identifier without a correspondingly validated TNAuthList authority, or vice versa, would defeat the guarantee; the requirements in this document prohibit such issuance.
 
-Domain control validation establishes control at the time of issuance and does not by itself attest to the legal identity of the organization controlling the domain. Where higher assurance of organizational identity is desired, it is established through the certificate policy under which the CA operates and is out of scope for this document.
+Domain control validation establishes control at the time of issuance and does not by itself attest to the legal identity of the organization controlling the domain. As described in {{phase1-domain-control}}, the broader entity verification that establishes the entity-to-domain association is performed under the CA's certificate policy and is out of scope for this document.
 
 Certificate transparency makes the binding publicly auditable, enabling monitors to detect a certificate that binds a domain to telephone numbers or service provider codes without authorization. Short-lived certificates limit the window during which a mistaken or compromised binding remains usable.
 
