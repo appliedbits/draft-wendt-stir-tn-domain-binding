@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Binding a Domain Identifier to Telephone Number Authority in STIR Certificates</title>
+<meta content="Chris Wendt" name="author">
+<meta content="
+       This document defines a mechanism for binding a domain identifier to telephone number authority within a STIR certificate. A certificate produced under this mechanism carries, as a co-validated pair, the telephone numbers or service provider codes a subject is authorized for in a TNAuthList extension and a domain the subject controls in a SubjectAltName dNSName entry. The binding is established at issuance by requiring proof of domain control and validation of a TNAuthList authority token within a single certificate issuance, such that the resulting certificate attests that the same entity holds both. The mechanism applies to STIR certificates whose TNAuthList contains telephone number entries, service provider code entries, or both, allowing a domain to be bound to the right-to-use holder for a set of numbers or to the provider identified by a service provider code. This document defines the issuance conformance requirements and the relying party verification rule that together make the binding meaningful. It does not define telephone number or service provider code authorization, domain validation, or certificate transparency, all of which are specified elsewhere and referenced here. 
+    " name="description">
+<meta content="xml2rfc 3.33.0" name="generator">
+<meta content="telephone number" name="keyword">
+<meta content="domain" name="keyword">
+<meta content="right-to-use" name="keyword">
+<meta content="service provider code" name="keyword">
+<meta content="delegate certificate" name="keyword">
+<meta content="draft-wendt-stir-tn-domain-binding-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.33.0
+    Python 3.12.13
+    ConfigArgParse 1.7
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.0.2
+    platformdirs 4.9.6
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.7.0
+-->
+<link href="draft-wendt-stir-tn-domain-binding.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">STIR TN-Domain Binding</td>
+<td class="right">June 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Wendt</td>
+<td class="center">Expires 16 December 2026</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Secure Telephone Identity Revisited</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-wendt-stir-tn-domain-binding-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-06-14" class="published">14 June 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2026-12-16">16 December 2026</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">C. Wendt</div>
+<div class="org">Somos, Inc.</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Binding a Domain Identifier to Telephone Number Authority in STIR Certificates</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document defines a mechanism for binding a domain identifier to telephone number authority within a STIR certificate. A certificate produced under this mechanism carries, as a co-validated pair, the telephone numbers or service provider codes a subject is authorized for in a TNAuthList extension and a domain the subject controls in a SubjectAltName dNSName entry. The binding is established at issuance by requiring proof of domain control and validation of a TNAuthList authority token within a single certificate issuance, such that the resulting certificate attests that the same entity holds both. The mechanism applies to STIR certificates whose TNAuthList contains telephone number entries, service provider code entries, or both, allowing a domain to be bound to the right-to-use holder for a set of numbers or to the provider identified by a service provider code. This document defines the issuance conformance requirements and the relying party verification rule that together make the binding meaningful. It does not define telephone number or service provider code authorization, domain validation, or certificate transparency, all of which are specified elsewhere and referenced here.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-discussion-venues">
+<a href="#name-discussion-venues" class="section-name selfRef">Discussion Venues</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">Discussion of this document takes place on the
+    Secure Telephone Identity Revisited Working Group mailing list (stir@ietf.org),
+    which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/stir/">https://mailarchive.ietf.org/arch/browse/stir/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">Source for this draft and an issue tracker can be found at
+    <span><a href="https://github.com/appliedbits/draft-wendt-stir-tn-domain-binding">https://github.com/appliedbits/draft-wendt-stir-tn-domain-binding</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 16 December 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-overview-of-the-binding" class="internal xref">Overview of the Binding</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-binding-process" class="internal xref">Binding Process</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-phase-1-domain-control" class="internal xref">Phase 1: Domain control</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-phase-2-tnauthlist-authorit" class="internal xref">Phase 2: TNAuthList authority</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-phase-3-binding-issuance" class="internal xref">Phase 3: Binding issuance</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-issuance-requirements" class="internal xref">Issuance Requirements</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-certificate-profile" class="internal xref">Certificate Profile</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-examples" class="internal xref">Examples</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-relying-party-verification" class="internal xref">Relying Party Verification</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">The STIR architecture (<span>[<a href="#RFC8224" class="cite xref">RFC8224</a>]</span>, <span>[<a href="#RFC8225" class="cite xref">RFC8225</a>]</span>, <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>) establishes that a signer is authorized for the telephone numbers or service provider codes carried in the TNAuthList certificate extension <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>, validated through the STIR certificate chain. This authority may be held by an entity to which numbers have been assigned, including through delegation <span>[<a href="#RFC9060" class="cite xref">RFC9060</a>]</span>, or by a provider identified by a service provider code. However, STIR does not establish a verifiable identity for the entity that holds this authority, nor does it bind that identity to an Internet identifier that a relying party can recognize across contexts.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">A domain name is a stable, globally unique Internet identifier for which well-established mechanisms exist to prove control. If a STIR certificate could attest that the entity authorized for a set of telephone numbers or service provider codes is the same entity that controls a particular domain, a relying party would gain an independent, corroborating identity signal bound to that authority. For a certificate carrying telephone numbers, the domain identifies the right-to-use holder for those numbers. For a certificate carrying a service provider code, the domain identifies the provider. In both cases the value of the binding depends entirely on the two facts being established independently and then bound together by the issuer, rather than merely asserted by the subject.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">This document defines that binding. It specifies how an issuing Certification Authority co-validates the TNAuthList authority and domain control within a single issuance, what the resulting certificate contains, and how a relying party verifies the binding. The mechanism reuses existing components without modification: TNAuthList authority via authority tokens (<span>[<a href="#RFC9447" class="cite xref">RFC9447</a>]</span>, <span>[<a href="#RFC9448" class="cite xref">RFC9448</a>]</span>), domain control validation via existing challenge mechanisms such as those defined for ACME <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span>, and public logging via certificate transparency <span>[<a href="#I-D.ietf-stir-certificate-transparency" class="cite xref">I-D.ietf-stir-certificate-transparency</a>]</span>. The contribution of this document is the requirement that these be bound together at issuance and the verification rule that relies on that binding.<a href="#section-1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conventions-and-definitions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">This document uses the following terms.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-3">TNAuthList authority: the authorization for an entity to use the telephone numbers or to hold the service provider code carried in a TNAuthList extension <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>, established by the authority responsible for those entries, such as a numbering authority, responsible provider, or service provider code authority.<a href="#section-2-3" class="pilcrow">¶</a></p>
+<p id="section-2-4">TNAuthList authority token: a signed assertion of TNAuthList authority for the entries it covers, validated during STIR certificate issuance, as defined in <span>[<a href="#RFC9447" class="cite xref">RFC9447</a>]</span> and <span>[<a href="#RFC9448" class="cite xref">RFC9448</a>]</span>. For telephone number entries this attests right-to-use of the numbers; for service provider code entries it attests holdership of the code.<a href="#section-2-4" class="pilcrow">¶</a></p>
+<p id="section-2-5">Right-to-Use (RTU): the case of TNAuthList authority in which the entries are telephone numbers, representing authorization for an entity to use those numbers.<a href="#section-2-5" class="pilcrow">¶</a></p>
+<p id="section-2-6">Domain identifier: a DNS domain name controlled by the certificate subject, carried in a SubjectAltName dNSName entry.<a href="#section-2-6" class="pilcrow">¶</a></p>
+<p id="section-2-7">Bound certificate: a STIR certificate issued under this document, carrying a co-validated TNAuthList and domain identifier.<a href="#section-2-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="overview-of-the-binding">
+<section id="section-3">
+      <h2 id="name-overview-of-the-binding">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-overview-of-the-binding" class="section-name selfRef">Overview of the Binding</a>
+      </h2>
+<p id="section-3-1">A bound certificate asserts a single composite fact: the entity that controls the domain identifier in the certificate is the same entity that holds the TNAuthList authority in the certificate. This composite fact is established at issuance and is not derivable from either proof alone.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">The binding rests on two independent proofs:<a href="#section-3-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3-3">
+<li id="section-3-3.1">
+          <p id="section-3-3.1.1">Proof of domain control: the subject demonstrates control of the domain identifier, using an existing domain control validation mechanism.<a href="#section-3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-3-3.2">
+          <p id="section-3-3.2.1">Proof of TNAuthList authority: the subject presents a TNAuthList authority token attesting authorization for the telephone numbers or service provider codes, validated by the issuing CA against the authority responsible for that token.<a href="#section-3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-3-4">Neither proof is defined by this document. What this document defines is the requirement that both be satisfied within a single issuance, and that the issued certificate carry both results as a bound pair, so that a relying party validating the certificate can rely on the composite fact.<a href="#section-3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="binding-process">
+<section id="section-4">
+      <h2 id="name-binding-process">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-binding-process" class="section-name selfRef">Binding Process</a>
+      </h2>
+<p id="section-4-1">The binding is produced by a three-phase process. The first two phases each establish one proof using mechanisms that already exist; the third phase binds the two results into one certificate. The phases are described here to give an operational picture; the normative conformance requirements are stated in <a href="#issuance-requirements" class="auto internal xref">Section 5</a>.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">Phase 1 establishes control of the domain identifier. Phase 2 establishes TNAuthList authority for the telephone numbers or service provider codes. Phase 3 is a single certificate issuance that requires both proofs and binds their results. The following diagram shows the process at a glance.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4-3">
+<pre>
+   +-------------+                              +-------------------+
+   |  Subject    |                              | TNAuthList        |
+   | (domain +   |                              | Authority         |
+   |  TN or SPC  |                              | (numbering auth / |
+   |  authority) |                              |  provider / SPC   |
+   |             |                              |  authority)       |
+   +------+------+                              +---------+---------+
+          |   Phase 2: request authority evidence        |
+          | --------------------------------------------+
+          |                                              |
+          | &lt;-------- TNAuthList authority token --------+
+          |          (proves TN right-to-use or SPC holdership)
+          |
+          | Phase 1 + Phase 3: single issuance request to CA
+          | (CSR + domain challenge + authority token)
+          v
+   +------+-------------------------------------------------+
+   |                  STI Certification Authority           |
+   |                                                        |
+   |  Phase 1: validate domain control (e.g. dns-01)        |
+   |  Phase 2 check: validate TNAuthList authority token    |
+   |  Phase 3: bind validated domain + validated TNAuthList |
+   |           into one certificate, submit to CT log       |
+   +------+-------------------------------------------------+
+          |
+          | bound certificate (domain in SAN + TN/SPC in
+          | TNAuthList + embedded SCT)
+          v
+   +------+-------------------+
+   |  Bound certificate       |
+   +--------------------------+
+</pre><a href="#section-4-3" class="pilcrow">¶</a>
+</div>
+<div id="phase1-domain-control">
+<section id="section-4.1">
+        <h3 id="name-phase-1-domain-control">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-phase-1-domain-control" class="section-name selfRef">Phase 1: Domain control</a>
+        </h3>
+<p id="section-4.1-1">The subject proves control of the domain identifier that will appear in the SubjectAltName. This document does not define a new mechanism for this; it reuses domain control validation as already deployed for the Web PKI. The challenge types defined for ACME <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span> are directly applicable:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1-2.1">
+            <p id="section-4.1-2.1.1">dns-01: the subject provisions a DNS TXT record containing a key-authorization value under a well-known name in the zone of the domain. This proves control of the zone.<a href="#section-4.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-2.2">
+            <p id="section-4.1-2.2.1">http-01: the subject serves a key-authorization value at a well-known path under the domain. This proves control of content served at the domain.<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.1-3">Either challenge is sufficient on its own. The choice follows existing ACME practice and is operational.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">Domain control verification is an explicit, cryptographically demonstrable signal. The operational act of provisioning the required records in public DNS, or serving the required content under the domain, demonstrates current authorized control of the domain by the party performing it. This is distinct from the broader entity verification, often referred to as know-your-customer (KYC), through which a provider or authority establishes and periodically re-validates the customer relationship that associates a real-world entity with its domain. That work is important and assumed to take place, but it is out of scope here and is neither defined nor replaced by this document. Where KYC establishes that association in the first place, domain control is the strongest explicit signal that the association remains genuine and currently authorized, because it can be cryptographically demonstrated and re-checked at each issuance. This document relies on domain control and telephone number authority as those explicit signals, while depending on, rather than specifying, the entity verification they rest on.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="phase-2-tnauthlist-authority">
+<section id="section-4.2">
+        <h3 id="name-phase-2-tnauthlist-authorit">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-phase-2-tnauthlist-authorit" class="section-name selfRef">Phase 2: TNAuthList authority</a>
+        </h3>
+<p id="section-4.2-1">The subject obtains a TNAuthList authority token from the authority responsible for the entries it covers: a numbering authority or responsible provider for telephone numbers, or a service provider code authority for an SPC. This is the same authority token construct used for ordinary STIR certificate issuance (<span>[<a href="#RFC9447" class="cite xref">RFC9447</a>]</span>, <span>[<a href="#RFC9448" class="cite xref">RFC9448</a>]</span>). The token is scoped to specific telephone numbers or service provider codes, is verifiable by the CA against the responsible authority's credentials, and is consumed within a single issuance rather than held as a long-lived bearer credential. The authority issuing the token and the subject are frequently different entities; binding the two proofs is what makes that separation verifiable rather than assumed.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="phase-3-binding-issuance">
+<section id="section-4.3">
+        <h3 id="name-phase-3-binding-issuance">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-phase-3-binding-issuance" class="section-name selfRef">Phase 3: Binding issuance</a>
+        </h3>
+<p id="section-4.3-1">The subject places a single certificate issuance request to the CA that carries both proofs: a Certificate Signing Request naming the domain identifier in its SubjectAltName, a domain control challenge response, and the TNAuthList authority token. The CA validates domain control and validates the authority token, and only if both succeed issues a certificate whose SubjectAltName carries the validated domain and whose TNAuthList carries the validated telephone numbers or service provider codes. The certificate is submitted to a transparency log and the resulting SCT is embedded before the certificate is used.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.3-2">The reason both proofs are evaluated within one issuance, rather than assembled from separately obtained credentials, is that the trustworthiness of the binding depends on a single party having confirmed both at the same time. If a subject could obtain a domain credential from one source and a TNAuthList authority credential from another and combine them itself, a relying party would have no assurance that the same entity legitimately held both. Requiring the CA to validate both before issuing makes the certificate a first-party attestation that the binding was verified, not merely asserted.<a href="#section-4.3-2" class="pilcrow">¶</a></p>
+<p id="section-4.3-3">The following sequence shows the issuance in full, including the transparency step.<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.3-4">
+<pre>
+ Subject             STI-CA              TNAuthList Auth   STI-CT Log
+    |                  |                        |               |
+    |  (Phase 2 done earlier)                   |               |
+    |  request authority evidence -----------&gt;  |               |
+    |  &lt;----- TNAuthList authority token -----  |               |
+    |                  |                        |               |
+    |  1. issuance request (CSR w/ domain SAN + token)          |
+    | ---------------&gt; |                        |               |
+    |  2. domain challenge (dns-01 / http-01)   |               |
+    | &lt;--------------- |                        |               |
+    |  provision TXT / serve resource           |               |
+    | ---------------&gt; |                        |               |
+    |                  |  validate domain       |               |
+    |                  |  3. validate token --&gt; |               |
+    |                  | &lt;--- token valid ----- |               |
+    |                  |  4. both OK? yes       |               |
+    |                  |  5. submit pre-cert -----------------&gt; |
+    |                  | &lt;----------- SCT ----------------------|
+    |                  |  embed SCT             |               |
+    | &lt;----- bound certificate (domain + TN/SPC + SCT) -------  |
+    |                  |                        |               |
+</pre><a href="#section-4.3-4" class="pilcrow">¶</a>
+</div>
+<p id="section-4.3-5">If either proof fails at step 4, the CA does not issue, the CT log is never contacted, and the subject receives an error rather than a certificate.<a href="#section-4.3-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="issuance-requirements">
+<section id="section-5">
+      <h2 id="name-issuance-requirements">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-issuance-requirements" class="section-name selfRef">Issuance Requirements</a>
+      </h2>
+<p id="section-5-1">An issuing Certification Authority that issues bound certificates under this document <span class="bcp14">MUST</span> satisfy all of the following within a single certificate issuance.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<p id="section-5-2">The CA <span class="bcp14">MUST</span> validate control of the domain identifier that will appear in the SubjectAltName dNSName entry of the certificate. The CA <span class="bcp14">MUST</span> use an established domain control validation mechanism. The challenge-based mechanisms defined for ACME <span>[<a href="#RFC8555" class="cite xref">RFC8555</a>]</span> are suitable and <span class="bcp14">RECOMMENDED</span>. This document does not define a new domain control validation mechanism.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<p id="section-5-3">The CA <span class="bcp14">MUST</span> validate a TNAuthList authority token covering the telephone numbers or service provider codes that will appear in the TNAuthList extension of the certificate, in accordance with <span>[<a href="#RFC9447" class="cite xref">RFC9447</a>]</span> and <span>[<a href="#RFC9448" class="cite xref">RFC9448</a>]</span>. The CA <span class="bcp14">MUST NOT</span> include in the TNAuthList any telephone number or service provider code not covered by a validated TNAuthList authority token.<a href="#section-5-3" class="pilcrow">¶</a></p>
+<p id="section-5-4">The CA <span class="bcp14">MUST</span> treat the two validations as a single atomic condition for issuance. If either the domain control validation or the TNAuthList authority token validation fails, the CA <span class="bcp14">MUST NOT</span> issue the certificate. The CA <span class="bcp14">MUST NOT</span> issue a certificate that carries a domain identifier without a corresponding validated TNAuthList authority, nor one that carries TNAuthList authority bound to an unvalidated domain identifier.<a href="#section-5-4" class="pilcrow">¶</a></p>
+<p id="section-5-5">The CA <span class="bcp14">MUST</span> submit the issued certificate to a transparency log and the certificate <span class="bcp14">MUST</span> carry an embedded Signed Certificate Timestamp as defined in <span>[<a href="#I-D.ietf-stir-certificate-transparency" class="cite xref">I-D.ietf-stir-certificate-transparency</a>]</span>, so that the binding is publicly auditable prior to use.<a href="#section-5-5" class="pilcrow">¶</a></p>
+<p id="section-5-6">The two validations <span class="bcp14">MAY</span> be performed in any order within the issuance, and <span class="bcp14">MAY</span> reuse a recent prior domain control validation for the same domain identifier and the same subject account, provided the reused validation is within the validity window permitted by the CA's policy. Reuse of a prior TNAuthList authority token validation is NOT permitted; a token <span class="bcp14">MUST</span> be validated for each issuance.<a href="#section-5-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="certificate-profile">
+<section id="section-6">
+      <h2 id="name-certificate-profile">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-certificate-profile" class="section-name selfRef">Certificate Profile</a>
+      </h2>
+<p id="section-6-1">A bound certificate <span class="bcp14">MUST</span> conform to the STIR certificate profile in <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>. Where the certificate is a delegate certificate, it <span class="bcp14">MUST</span> also conform to <span>[<a href="#RFC9060" class="cite xref">RFC9060</a>]</span>. A bound certificate <span class="bcp14">MUST</span> contain the following.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">A SubjectAltName extension containing exactly one dNSName entry carrying the validated domain identifier. The domain identifier <span class="bcp14">MUST</span> be a DNS-resolvable domain name controlled by the subject.<a href="#section-6-2" class="pilcrow">¶</a></p>
+<p id="section-6-3">A TNAuthList extension <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span> containing one or more entries, which may be telephone number entries, service provider code entries, or both. Every entry <span class="bcp14">MUST</span> be covered by a TNAuthList authority token validated during issuance.<a href="#section-6-3" class="pilcrow">¶</a></p>
+<p id="section-6-4">An embedded Signed Certificate Timestamp as defined in <span>[<a href="#I-D.ietf-stir-certificate-transparency" class="cite xref">I-D.ietf-stir-certificate-transparency</a>]</span>.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<p id="section-6-5">A bound certificate <span class="bcp14">MAY</span> additionally carry JWTClaimConstraints or EnhancedJWTClaimConstraints extensions and other elements permitted by <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>; these are out of scope for the binding defined here. Issuers <span class="bcp14">SHOULD</span> issue short-lived certificates as described in <span>[<a href="#I-D.ietf-stir-certificates-shortlived" class="cite xref">I-D.ietf-stir-certificates-shortlived</a>]</span>.<a href="#section-6-5" class="pilcrow">¶</a></p>
+<p id="section-6-6">This document associates no new semantics with the Subject distinguished name and does not require organizational identity to be present in the certificate. The domain identifier in the SubjectAltName is the identifier this document binds to the TNAuthList authority.<a href="#section-6-6" class="pilcrow">¶</a></p>
+<p id="section-6-7">The domain identifier is carried in the SubjectAltName, not in the Subject Common Name, consistent with current PKI practice of conveying domain identity in the SubjectAltName rather than the Common Name. This binding adds a SubjectAltName dNSName entry and neither relies on nor alters the Subject distinguished name. It is therefore compatible with certificate profiles that specify Subject Common Name content for their own purposes, such as the SHAKEN profile (ATIS-1000074, ATIS-1000080, ATIS-1000084), which uses the Common Name to mark a certificate as a SHAKEN certificate. A certificate may carry such Common Name content and a bound domain identifier in its SubjectAltName without conflict.<a href="#section-6-7" class="pilcrow">¶</a></p>
+<div id="examples">
+<section id="section-6.1">
+        <h3 id="name-examples">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-examples" class="section-name selfRef">Examples</a>
+        </h3>
+<p id="section-6.1-1">The following examples illustrate the two principal cases. The certificate fields are shown in the textual style produced by common certificate tooling, omitting fields not relevant to the binding. The TNAuthList extension is identified by the object identifier id-pe-TNAuthList (1.3.6.1.5.5.7.1.26) and its value is the DER encoding of the TNAuthorizationList structure defined in <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>; because most tooling does not decode this extension natively, both the decoded contents and the DER octets are shown. Values are illustrative.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<p id="section-6.1-2">The first example is a certificate issued to a service provider. Its TNAuthList carries a single service provider code, and its SubjectAltName carries the domain that identifies that provider. The Common Name marks it as a SHAKEN certificate, illustrating coexistence with the SHAKEN profile.<a href="#section-6.1-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.1-3">
+<pre>
+Certificate:
+    Data:
+        Subject: CN=SHAKEN, O=Example Communications Inc
+        X509v3 extensions:
+            X509v3 Subject Alternative Name:
+                DNS:example-comms.net
+            id-pe-TNAuthList (1.3.6.1.5.5.7.1.26):
+                TNAuthorizationList:
+                    spc [0]: "1234"
+            CT Precertificate SCTs:
+                Signed Certificate Timestamp: ...
+</pre><a href="#section-6.1-3" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-4">The TNAuthorizationList DER, as it appears in the extension value, with the EXPLICIT context tag on the spc CHOICE alternative:<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.1-5">
+<pre>
+30 08 A0 06 16 04 31 32 33 34
+  30 08            SEQUENCE (TNAuthorizationList), 8 octets
+     A0 06         [0] EXPLICIT (spc), 6 octets
+        16 04      IA5String, 4 octets
+           31 32 33 34    "1234"
+</pre><a href="#section-6.1-5" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-6">In this case a relying party that validates the certificate learns that the entity holding service provider code 1234 is the same entity that controls example-comms.net, because the issuing CA validated both within a single issuance.<a href="#section-6.1-6" class="pilcrow">¶</a></p>
+<p id="section-6.1-7">The second example is a certificate issued to a business entity that holds the right-to-use for a telephone number. Its TNAuthList carries that telephone number, and its SubjectAltName carries the business's domain. While a TNAuthorizationList may contain more than one entry, a certificate scoped to a single telephone number is <span class="bcp14">RECOMMENDED</span>. Telephone numbers in the TNAuthorizationList are IA5Strings restricted to the digits and symbols permitted by <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>, and do not include a leading "+".<a href="#section-6.1-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.1-8">
+<pre>
+Certificate:
+    Data:
+        Subject: O=Example Retail LLC
+        X509v3 extensions:
+            X509v3 Subject Alternative Name:
+                DNS:exampleretail.com
+            id-pe-TNAuthList (1.3.6.1.5.5.7.1.26):
+                TNAuthorizationList:
+                    one [2]: "12015550100"
+            CT Precertificate SCTs:
+                Signed Certificate Timestamp: ...
+</pre><a href="#section-6.1-8" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-9">The corresponding TNAuthorizationList DER, with the EXPLICIT context tag on the telephone number CHOICE alternative:<a href="#section-6.1-9" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.1-10">
+<pre>
+30 0F A2 0D 16 0B 31 32 30 31 35 35 35 30 31 30 30
+  30 0F            SEQUENCE (TNAuthorizationList), 15 octets
+     A2 0D         [2] EXPLICIT (one), 13 octets
+        16 0B      IA5String, 11 octets
+           31 32 30 31 35 35 35 30 31 30 30    "12015550100"
+</pre><a href="#section-6.1-10" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-11">In this case a relying party learns that the entity that controls exampleretail.com is the same entity that holds the right-to-use for the telephone number 12015550100. A relying party <span class="bcp14">MUST NOT</span> extend that conclusion to any telephone number not present in the TNAuthList.<a href="#section-6.1-11" class="pilcrow">¶</a></p>
+<p id="section-6.1-12">A certificate <span class="bcp14">MAY</span> carry both telephone number entries and service provider code entries in a single TNAuthorizationList, in which case the domain identifier is bound to all of them, as permitted by <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>.<a href="#section-6.1-12" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="relying-party-verification">
+<section id="section-7">
+      <h2 id="name-relying-party-verification">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-relying-party-verification" class="section-name selfRef">Relying Party Verification</a>
+      </h2>
+<p id="section-7-1">A relying party that validates a bound certificate, in addition to the STIR certificate validation procedures defined in <span>[<a href="#RFC8224" class="cite xref">RFC8224</a>]</span> and <span>[<a href="#RFC8226" class="cite xref">RFC8226</a>]</span>, <span class="bcp14">MUST</span> apply the following.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">The relying party <span class="bcp14">MUST</span> validate the certificate chain to a trusted STIR trust anchor and <span class="bcp14">MUST</span> validate the embedded Signed Certificate Timestamp.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-7-3">The relying party <span class="bcp14">MUST</span> treat the domain identifier in the SubjectAltName dNSName entry as the identity of the entity holding the TNAuthList authority in the certificate only when the certificate is valid under the above checks. The domain identifier carries this meaning by virtue of the issuance binding; a relying party <span class="bcp14">MUST NOT</span> infer TNAuthList authority from the domain identifier independently of the TNAuthList, nor infer domain association for any telephone number or service provider code not present in the TNAuthList.<a href="#section-7-3" class="pilcrow">¶</a></p>
+<p id="section-7-4">When a relying party obtains the certificate by retrieving it from a location under the domain identifier, the relying party <span class="bcp14">MAY</span> treat successful retrieval over an authenticated channel for that domain as reinforcing the domain control evidence, but this retrieval is not a substitute for the issuance binding and SCT validation above.<a href="#section-7-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-8">
+      <h2 id="name-security-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-8-1">The security of the binding depends on the issuing CA performing both validations within a single issuance. The central guarantee is that a relying party need not trust the subject's self-assertion of either domain control or TNAuthList authority; it relies instead on the CA having validated both and bound them in a transparency-logged certificate. An issuer that issued a certificate carrying a domain identifier without a correspondingly validated TNAuthList authority, or vice versa, would defeat the guarantee; the requirements in this document prohibit such issuance.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-2">Domain control validation establishes control at the time of issuance and does not by itself attest to the legal identity of the organization controlling the domain. As described in <a href="#phase1-domain-control" class="auto internal xref">Section 4.1</a>, the broader entity verification that establishes the entity-to-domain association is performed under the CA's certificate policy and is out of scope for this document.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<p id="section-8-3">Certificate transparency makes the binding publicly auditable, enabling monitors to detect a certificate that binds a domain to telephone numbers or service provider codes without authorization. Short-lived certificates limit the window during which a mistaken or compromised binding remains usable.<a href="#section-8-3" class="pilcrow">¶</a></p>
+<p id="section-8-4">The reuse of a recent domain control validation permitted in the issuance requirements widens, by the reuse window, the interval between domain control being demonstrated and the binding being issued. CAs <span class="bcp14">SHOULD</span> keep this window short consistent with their policy.<a href="#section-8-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-9">
+      <h2 id="name-iana-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-9-1">This document has no IANA actions. It relies on certificate extensions and token mechanisms registered by the documents it references.<a href="#section-9-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-10">
+      <h2 id="name-references">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-10.1">
+        <h3 id="name-normative-references">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.ietf-acme-authority-token-jwtclaimcon">[I-D.ietf-acme-authority-token-jwtclaimcon]</dt>
+        <dd>
+<span class="refAuthor">Wendt, C.</span> and <span class="refAuthor">D. Hancock</span>, <span class="refTitle">"JWTClaimConstraints profile of ACME Authority Token"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-acme-authority-token-jwtclaimcon-02</span>, <time datetime="2026-06-12" class="refDate">12 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-acme-authority-token-jwtclaimcon-02">https://datatracker.ietf.org/doc/html/draft-ietf-acme-authority-token-jwtclaimcon-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.ietf-stir-certificate-transparency">[I-D.ietf-stir-certificate-transparency]</dt>
+        <dd>
+<span class="refAuthor">Wendt, C.</span>, <span class="refAuthor">Śliwa, R.</span>, <span class="refAuthor">Fenichel, A.</span>, and <span class="refAuthor">V. A. Gaikwad</span>, <span class="refTitle">"STI Certificate Transparency"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-stir-certificate-transparency-02</span>, <time datetime="2026-05-18" class="refDate">18 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-stir-certificate-transparency-02">https://datatracker.ietf.org/doc/html/draft-ietf-stir-certificate-transparency-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8224">[RFC8224]</dt>
+        <dd>
+<span class="refAuthor">Peterson, J.</span>, <span class="refAuthor">Jennings, C.</span>, <span class="refAuthor">Rescorla, E.</span>, and <span class="refAuthor">C. Wendt</span>, <span class="refTitle">"Authenticated Identity Management in the Session Initiation Protocol (SIP)"</span>, <span class="seriesInfo">RFC 8224</span>, <span class="seriesInfo">DOI 10.17487/RFC8224</span>, <time datetime="2018-02" class="refDate">February 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8224">https://www.rfc-editor.org/rfc/rfc8224</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8225">[RFC8225]</dt>
+        <dd>
+<span class="refAuthor">Wendt, C.</span> and <span class="refAuthor">J. Peterson</span>, <span class="refTitle">"PASSporT: Personal Assertion Token"</span>, <span class="seriesInfo">RFC 8225</span>, <span class="seriesInfo">DOI 10.17487/RFC8225</span>, <time datetime="2018-02" class="refDate">February 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8225">https://www.rfc-editor.org/rfc/rfc8225</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8226">[RFC8226]</dt>
+        <dd>
+<span class="refAuthor">Peterson, J.</span> and <span class="refAuthor">S. Turner</span>, <span class="refTitle">"Secure Telephone Identity Credentials: Certificates"</span>, <span class="seriesInfo">RFC 8226</span>, <span class="seriesInfo">DOI 10.17487/RFC8226</span>, <time datetime="2018-02" class="refDate">February 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8226">https://www.rfc-editor.org/rfc/rfc8226</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9447">[RFC9447]</dt>
+        <dd>
+<span class="refAuthor">Peterson, J.</span>, <span class="refAuthor">Barnes, M.</span>, <span class="refAuthor">Hancock, D.</span>, and <span class="refAuthor">C. Wendt</span>, <span class="refTitle">"Automated Certificate Management Environment (ACME) Challenges Using an Authority Token"</span>, <span class="seriesInfo">RFC 9447</span>, <span class="seriesInfo">DOI 10.17487/RFC9447</span>, <time datetime="2023-09" class="refDate">September 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9447">https://www.rfc-editor.org/rfc/rfc9447</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9448">[RFC9448]</dt>
+      <dd>
+<span class="refAuthor">Wendt, C.</span>, <span class="refAuthor">Hancock, D.</span>, <span class="refAuthor">Barnes, M.</span>, and <span class="refAuthor">J. Peterson</span>, <span class="refTitle">"TNAuthList Profile of Automated Certificate Management Environment (ACME) Authority Token"</span>, <span class="seriesInfo">RFC 9448</span>, <span class="seriesInfo">DOI 10.17487/RFC9448</span>, <time datetime="2023-09" class="refDate">September 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9448">https://www.rfc-editor.org/rfc/rfc9448</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-10.2">
+        <h3 id="name-informative-references">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.ietf-stir-certificates-shortlived">[I-D.ietf-stir-certificates-shortlived]</dt>
+        <dd>
+<span class="refAuthor">Peterson, J.</span>, <span class="refTitle">"Short-Lived Certificates for Secure Telephone Identity"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-stir-certificates-shortlived-05</span>, <time datetime="2026-04-09" class="refDate">9 April 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-stir-certificates-shortlived-05">https://datatracker.ietf.org/doc/html/draft-ietf-stir-certificates-shortlived-05</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8555">[RFC8555]</dt>
+        <dd>
+<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Hoffman-Andrews, J.</span>, <span class="refAuthor">McCarney, D.</span>, and <span class="refAuthor">J. Kasten</span>, <span class="refTitle">"Automatic Certificate Management Environment (ACME)"</span>, <span class="seriesInfo">RFC 8555</span>, <span class="seriesInfo">DOI 10.17487/RFC8555</span>, <time datetime="2019-03" class="refDate">March 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8555">https://www.rfc-editor.org/rfc/rfc8555</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9060">[RFC9060]</dt>
+      <dd>
+<span class="refAuthor">Peterson, J.</span>, <span class="refTitle">"Secure Telephone Identity Revisited (STIR) Certificate Delegation"</span>, <span class="seriesInfo">RFC 9060</span>, <span class="seriesInfo">DOI 10.17487/RFC9060</span>, <time datetime="2021-09" class="refDate">September 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9060">https://www.rfc-editor.org/rfc/rfc9060</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-A">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Chris Wendt</span></div>
+<div dir="auto" class="left"><span class="org">Somos, Inc.</span></div>
+<div dir="auto" class="left"><span class="country-name">United States of America</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:chris@appliedbits.com" class="email">chris@appliedbits.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
