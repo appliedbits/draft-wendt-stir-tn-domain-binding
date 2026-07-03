@@ -22,3 +22,6 @@ draft-wendt-stir-tn-domain-binding.xml
 package-lock.json
 report.xml
 !requirements.txt
+build.sh
+draft-wendt-stir-tn-domain-binding-0*
+draft-wendt-stir-tn-domain-binding-1*
