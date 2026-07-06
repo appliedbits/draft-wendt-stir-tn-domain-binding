@@ -26,15 +26,12 @@ author:
     country: US
 
 normative:
-  RFC2119:
-  RFC8174:
   RFC8224:
   RFC8225:
   RFC8226:
   RFC9060:
   RFC9447:
   RFC9448:
-  I-D.ietf-acme-authority-token-jwtclaimcon:
 
 informative:
   RFC8555:
