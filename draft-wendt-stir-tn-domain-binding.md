@@ -26,10 +26,14 @@ author:
     country: US
 
 normative:
+  RFC2119:
+  RFC8174:
+  RFC5280:
   RFC8224:
   RFC8225:
   RFC8226:
   RFC9060:
+  RFC9118:
   RFC9447:
   RFC9448:
 
@@ -63,7 +67,7 @@ TNAuthList authority token: a signed assertion of TNAuthList authority for the e
 
 Right-to-Use (RTU): the case of TNAuthList authority in which the entries are telephone numbers, representing authorization for an entity to use those numbers.
 
-Domain identifier: a DNS domain name controlled by the certificate subject, carried in a SubjectAltName dNSName entry.
+Domain identifier: a DNS domain name controlled by the certificate subject, carried in a SubjectAltName dNSName entry {{RFC5280}}.
 
 Bound certificate: a STIR certificate issued under this document, carrying a co-validated TNAuthList and domain identifier.
 
@@ -184,7 +188,7 @@ A SubjectAltName extension containing exactly one dNSName entry carrying the val
 
 A TNAuthList extension {{RFC8226}} containing one or more entries, which may be telephone number entries, service provider code entries, or both. Every entry MUST be covered by a TNAuthList authority token validated during issuance.
 
-A bound certificate MAY additionally carry JWTClaimConstraints or EnhancedJWTClaimConstraints extensions and other elements permitted by {{RFC8226}}; these are out of scope for the binding defined here. Issuers SHOULD issue short-lived certificates as described in {{I-D.ietf-stir-certificates-shortlived}}.
+A bound certificate MAY additionally carry the JWTClaimConstraints extension of {{RFC8226}}, the EnhancedJWTClaimConstraints extension of {{RFC9118}}, and other elements permitted by {{RFC8226}}; these are out of scope for the binding defined here. Issuers SHOULD issue short-lived certificates as described in {{I-D.ietf-stir-certificates-shortlived}}.
 
 This document associates no new semantics with the Subject distinguished name and does not require organizational identity to be present in the certificate. The domain identifier in the SubjectAltName is the identifier this document binds to the TNAuthList authority.
 
