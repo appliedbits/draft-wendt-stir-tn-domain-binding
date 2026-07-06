@@ -3,7 +3,7 @@ title: "Binding a Domain Identifier to Telephone Number Authority in STIR Certif
 abbrev: "STIR TN-Domain Binding"
 category: std
 
-docname: draft-wendt-stir-tn-domain-binding-latest
+docname: draft-wendt-stir-tn-domain-binding-00
 submissiontype: IETF
 number:
 date:
@@ -31,19 +31,18 @@ normative:
   RFC8224:
   RFC8225:
   RFC8226:
+  RFC9060:
   RFC9447:
   RFC9448:
   I-D.ietf-acme-authority-token-jwtclaimcon:
-  I-D.ietf-stir-certificate-transparency:
 
 informative:
   RFC8555:
-  RFC9060:
   I-D.ietf-stir-certificates-shortlived:
 
 --- abstract
 
-This document defines a mechanism for binding a domain identifier to telephone number authority within a STIR certificate. A certificate produced under this mechanism carries, as a co-validated pair, the telephone numbers or service provider codes a subject is authorized for in a TNAuthList extension and a domain the subject controls in a SubjectAltName dNSName entry. The binding is established at issuance by requiring proof of domain control and validation of a TNAuthList authority token within a single certificate issuance, such that the resulting certificate attests that the same entity holds both. The mechanism applies to STIR certificates whose TNAuthList contains telephone number entries, service provider code entries, or both, allowing a domain to be bound to the right-to-use holder for a set of numbers or to the provider identified by a service provider code. This document defines the issuance conformance requirements and the relying party verification rule that together make the binding meaningful. It does not define telephone number or service provider code authorization, domain validation, or certificate transparency, all of which are specified elsewhere and referenced here.
+This document defines a mechanism for binding a domain identifier to telephone number authority within a STIR certificate. A certificate produced under this mechanism carries, as a co-validated pair, the telephone numbers or service provider codes a subject is authorized for in a TNAuthList extension and a domain the subject controls in a SubjectAltName dNSName entry. The binding is established at issuance by requiring proof of domain control and validation of a TNAuthList authority token within a single certificate issuance, such that the resulting certificate attests that the same entity holds both. The mechanism applies to STIR certificates whose TNAuthList contains telephone number entries, service provider code entries, or both, allowing a domain to be bound to the right-to-use holder for a set of numbers or to the provider identified by a service provider code. This document defines the issuance conformance requirements and the relying party verification rule that together make the binding meaningful. It does not define telephone number or service provider code authorization or domain validation, both of which are specified elsewhere and referenced here.
 
 --- middle
 
@@ -53,7 +52,7 @@ The STIR architecture ({{RFC8224}}, {{RFC8225}}, {{RFC8226}}) establishes that a
 
 A domain name is a stable, globally unique Internet identifier for which well-established mechanisms exist to prove control. If a STIR certificate could attest that the entity authorized for a set of telephone numbers or service provider codes is the same entity that controls a particular domain, a relying party would gain an independent, corroborating identity signal bound to that authority. For a certificate carrying telephone numbers, the domain identifies the right-to-use holder for those numbers. For a certificate carrying a service provider code, the domain identifies the provider. In both cases the value of the binding depends entirely on the two facts being established independently and then bound together by the issuer, rather than merely asserted by the subject.
 
-This document defines that binding. It specifies how an issuing Certification Authority co-validates the TNAuthList authority and domain control within a single issuance, what the resulting certificate contains, and how a relying party verifies the binding. The mechanism reuses existing components without modification: TNAuthList authority via authority tokens ({{RFC9447}}, {{RFC9448}}), domain control validation via existing challenge mechanisms such as those defined for ACME {{RFC8555}}, and public logging via certificate transparency {{I-D.ietf-stir-certificate-transparency}}. The contribution of this document is the requirement that these be bound together at issuance and the verification rule that relies on that binding.
+This document defines that binding. It specifies how an issuing Certification Authority co-validates the TNAuthList authority and domain control within a single issuance, what the resulting certificate contains, and how a relying party verifies the binding. The mechanism reuses existing components without modification: TNAuthList authority via authority tokens ({{RFC9447}}, {{RFC9448}}) and domain control validation via existing challenge mechanisms such as those defined for ACME {{RFC8555}}. The contribution of this document is the requirement that these two proofs be bound together at issuance and the verification rule that relies on that binding.
 
 # Conventions and Definitions
 
@@ -111,11 +110,11 @@ Phase 1 establishes control of the domain identifier. Phase 2 establishes TNAuth
    |  Phase 1: validate domain control (e.g. dns-01)        |
    |  Phase 2 check: validate TNAuthList authority token    |
    |  Phase 3: bind validated domain + validated TNAuthList |
-   |           into one certificate, submit to CT log       |
+   |           into one certificate                         |
    +------+-------------------------------------------------+
           |
           | bound certificate (domain in SAN + TN/SPC in
-          | TNAuthList + embedded SCT)
+          | TNAuthList)
           v
    +------+-------------------+
    |  Bound certificate       |
@@ -131,7 +130,7 @@ The subject proves control of the domain identifier that will appear in the Subj
 
 Either challenge is sufficient on its own. The choice follows existing ACME practice and is operational.
 
-Domain control verification is an explicit, cryptographically demonstrable signal. The operational act of provisioning the required records in public DNS, or serving the required content under the domain, demonstrates current authorized control of the domain by the party performing it. This is distinct from the broader entity verification, often referred to as know-your-customer (KYC), through which a provider or authority establishes and periodically re-validates the customer relationship that associates a real-world entity with its domain. That work is important and assumed to take place, but it is out of scope here and is neither defined nor replaced by this document. Where KYC establishes that association in the first place, domain control is the strongest explicit signal that the association remains genuine and currently authorized, because it can be cryptographically demonstrated and re-checked at each issuance. This document relies on domain control and telephone number authority as those explicit signals, while depending on, rather than specifying, the entity verification they rest on.
+Domain control verification is an explicit, cryptographically demonstrable signal. The operational act of provisioning the required records in public DNS, or serving the required content under the domain, demonstrates current authorized control of the domain by the party performing it. This is distinct from the broader entity verification, often referred to as know-your-customer (KYC), through which a provider or authority establishes the customer relationship that associates a real-world entity with its domain. That verification is out of scope here and is neither defined nor replaced by this document. This document relies on domain control and telephone number authority as explicit signals, and depends on, rather than specifies, the entity verification they rest on.
 
 ## Phase 2: TNAuthList authority
 
@@ -139,37 +138,34 @@ The subject obtains a TNAuthList authority token from the authority responsible 
 
 ## Phase 3: Binding issuance
 
-The subject places a single certificate issuance request to the CA that carries both proofs: a Certificate Signing Request naming the domain identifier in its SubjectAltName, a domain control challenge response, and the TNAuthList authority token. The CA validates domain control and validates the authority token, and only if both succeed issues a certificate whose SubjectAltName carries the validated domain and whose TNAuthList carries the validated telephone numbers or service provider codes. The certificate is submitted to a transparency log and the resulting SCT is embedded before the certificate is used.
+The subject places a single certificate issuance request to the CA that carries both proofs: a Certificate Signing Request naming the domain identifier in its SubjectAltName, a domain control challenge response, and the TNAuthList authority token. The CA validates domain control and validates the authority token, and only if both succeed issues a certificate whose SubjectAltName carries the validated domain and whose TNAuthList carries the validated telephone numbers or service provider codes.
 
 The reason both proofs are evaluated within one issuance, rather than assembled from separately obtained credentials, is that the trustworthiness of the binding depends on a single party having confirmed both at the same time. If a subject could obtain a domain credential from one source and a TNAuthList authority credential from another and combine them itself, a relying party would have no assurance that the same entity legitimately held both. Requiring the CA to validate both before issuing makes the certificate a first-party attestation that the binding was verified, not merely asserted.
 
-The following sequence shows the issuance in full, including the transparency step.
+The following sequence shows the issuance in full.
 
 ~~~
- Subject             STI-CA              TNAuthList Auth   STI-CT Log
-    |                  |                        |               |
-    |  (Phase 2 done earlier)                   |               |
-    |  request authority evidence ----------->  |               |
-    |  <----- TNAuthList authority token -----  |               |
-    |                  |                        |               |
-    |  1. issuance request (CSR w/ domain SAN + token)          |
-    | ---------------> |                        |               |
-    |  2. domain challenge (dns-01 / http-01)   |               |
-    | <--------------- |                        |               |
-    |  provision TXT / serve resource           |               |
-    | ---------------> |                        |               |
-    |                  |  validate domain       |               |
-    |                  |  3. validate token --> |               |
-    |                  | <--- token valid ----- |               |
-    |                  |  4. both OK? yes       |               |
-    |                  |  5. submit pre-cert -----------------> |
-    |                  | <----------- SCT ----------------------|
-    |                  |  embed SCT             |               |
-    | <----- bound certificate (domain + TN/SPC + SCT) -------  |
-    |                  |                        |               |
+ Subject             STI-CA              TNAuthList Auth
+    |                  |                        |
+    |  (Phase 2 done earlier)                   |
+    |  request authority evidence ----------->  |
+    |  <----- TNAuthList authority token -----  |
+    |                  |                        |
+    |  1. issuance request (CSR w/ domain SAN + token)
+    | ---------------> |                        |
+    |  2. domain challenge (dns-01 / http-01)   |
+    | <--------------- |                        |
+    |  provision TXT / serve resource           |
+    | ---------------> |                        |
+    |                  |  validate domain       |
+    |                  |  3. validate token --> |
+    |                  | <--- token valid ----- |
+    |                  |  4. both OK? yes       |
+    | <----- bound certificate (domain + TN/SPC) |
+    |                  |                        |
 ~~~
 
-If either proof fails at step 4, the CA does not issue, the CT log is never contacted, and the subject receives an error rather than a certificate.
+If either proof fails at step 4, the CA does not issue, and the subject receives an error rather than a certificate.
 
 # Issuance Requirements {#issuance-requirements}
 
@@ -181,8 +177,6 @@ The CA MUST validate a TNAuthList authority token covering the telephone numbers
 
 The CA MUST treat the two validations as a single atomic condition for issuance. If either the domain control validation or the TNAuthList authority token validation fails, the CA MUST NOT issue the certificate. The CA MUST NOT issue a certificate that carries a domain identifier without a corresponding validated TNAuthList authority, nor one that carries TNAuthList authority bound to an unvalidated domain identifier.
 
-The CA MUST submit the issued certificate to a transparency log and the certificate MUST carry an embedded Signed Certificate Timestamp as defined in {{I-D.ietf-stir-certificate-transparency}}, so that the binding is publicly auditable prior to use.
-
 The two validations MAY be performed in any order within the issuance, and MAY reuse a recent prior domain control validation for the same domain identifier and the same subject account, provided the reused validation is within the validity window permitted by the CA's policy. Reuse of a prior TNAuthList authority token validation is NOT permitted; a token MUST be validated for each issuance.
 
 # Certificate Profile
@@ -192,8 +186,6 @@ A bound certificate MUST conform to the STIR certificate profile in {{RFC8226}}.
 A SubjectAltName extension containing exactly one dNSName entry carrying the validated domain identifier. The domain identifier MUST be a DNS-resolvable domain name controlled by the subject.
 
 A TNAuthList extension {{RFC8226}} containing one or more entries, which may be telephone number entries, service provider code entries, or both. Every entry MUST be covered by a TNAuthList authority token validated during issuance.
-
-An embedded Signed Certificate Timestamp as defined in {{I-D.ietf-stir-certificate-transparency}}.
 
 A bound certificate MAY additionally carry JWTClaimConstraints or EnhancedJWTClaimConstraints extensions and other elements permitted by {{RFC8226}}; these are out of scope for the binding defined here. Issuers SHOULD issue short-lived certificates as described in {{I-D.ietf-stir-certificates-shortlived}}.
 
@@ -217,8 +209,6 @@ Certificate:
             id-pe-TNAuthList (1.3.6.1.5.5.7.1.26):
                 TNAuthorizationList:
                     spc [0]: "1234"
-            CT Precertificate SCTs:
-                Signed Certificate Timestamp: ...
 ~~~
 
 The TNAuthorizationList DER, as it appears in the extension value, with the EXPLICIT context tag on the spc CHOICE alternative:
@@ -245,8 +235,6 @@ Certificate:
             id-pe-TNAuthList (1.3.6.1.5.5.7.1.26):
                 TNAuthorizationList:
                     one [2]: "12015550100"
-            CT Precertificate SCTs:
-                Signed Certificate Timestamp: ...
 ~~~
 
 The corresponding TNAuthorizationList DER, with the EXPLICIT context tag on the telephone number CHOICE alternative:
@@ -267,19 +255,19 @@ A certificate MAY carry both telephone number entries and service provider code 
 
 A relying party that validates a bound certificate, in addition to the STIR certificate validation procedures defined in {{RFC8224}} and {{RFC8226}}, MUST apply the following.
 
-The relying party MUST validate the certificate chain to a trusted STIR trust anchor and MUST validate the embedded Signed Certificate Timestamp.
+The relying party MUST validate the certificate chain to a trusted STIR trust anchor. Where the certificate carries an embedded Signed Certificate Timestamp, the relying party validates it as it would for any STIR certificate.
 
 The relying party MUST treat the domain identifier in the SubjectAltName dNSName entry as the identity of the entity holding the TNAuthList authority in the certificate only when the certificate is valid under the above checks. The domain identifier carries this meaning by virtue of the issuance binding; a relying party MUST NOT infer TNAuthList authority from the domain identifier independently of the TNAuthList, nor infer domain association for any telephone number or service provider code not present in the TNAuthList.
 
-When a relying party obtains the certificate by retrieving it from a location under the domain identifier, the relying party MAY treat successful retrieval over an authenticated channel for that domain as reinforcing the domain control evidence, but this retrieval is not a substitute for the issuance binding and SCT validation above.
+When a relying party obtains the certificate by retrieving it from a location under the domain identifier, the relying party MAY treat successful retrieval over an authenticated channel for that domain as reinforcing the domain control evidence, but this retrieval is not a substitute for the issuance binding established above.
 
 # Security Considerations
 
-The security of the binding depends on the issuing CA performing both validations within a single issuance. The central guarantee is that a relying party need not trust the subject's self-assertion of either domain control or TNAuthList authority; it relies instead on the CA having validated both and bound them in a transparency-logged certificate. An issuer that issued a certificate carrying a domain identifier without a correspondingly validated TNAuthList authority, or vice versa, would defeat the guarantee; the requirements in this document prohibit such issuance.
+The security of the binding depends on the issuing CA performing both validations within a single issuance. The central guarantee is that a relying party need not trust the subject's self-assertion of either domain control or TNAuthList authority; it relies instead on the CA having validated both and bound them in a single issued certificate. An issuer that issued a certificate carrying a domain identifier without a correspondingly validated TNAuthList authority, or vice versa, would defeat the guarantee; the requirements in this document prohibit such issuance.
 
 Domain control validation establishes control at the time of issuance and does not by itself attest to the legal identity of the organization controlling the domain. As described in {{phase1-domain-control}}, the broader entity verification that establishes the entity-to-domain association is performed under the CA's certificate policy and is out of scope for this document.
 
-Certificate transparency makes the binding publicly auditable, enabling monitors to detect a certificate that binds a domain to telephone numbers or service provider codes without authorization. Short-lived certificates limit the window during which a mistaken or compromised binding remains usable.
+The binding reflects the state validated at the time of issuance. Its currency over time is maintained by reissuance rather than by ongoing monitoring: each issuance re-checks domain control and requires a freshly validated TNAuthList authority token, and short-lived certificates as described in {{I-D.ietf-stir-certificates-shortlived}} bound the interval over which a stale, mistaken, or compromised binding remains usable. The lifecycle of the underlying entity-to-domain association on which domain control rests is maintained under the CA's certificate policy, as described in {{phase1-domain-control}}.
 
 The reuse of a recent domain control validation permitted in the issuance requirements widens, by the reuse window, the interval between domain control being demonstrated and the binding being issued. CAs SHOULD keep this window short consistent with their policy.
 
