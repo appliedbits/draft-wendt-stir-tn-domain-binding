@@ -3,7 +3,7 @@ title: "Binding a Domain Identifier to Telephone Number Authority in STIR Certif
 abbrev: "STIR TN-Domain Binding"
 category: std
 
-docname: draft-wendt-stir-tn-domain-binding-00
+docname: draft-wendt-stir-tn-domain-binding-01
 submissiontype: IETF
 number:
 date:
@@ -52,6 +52,8 @@ This document defines a mechanism for binding a domain identifier to telephone n
 The STIR architecture ({{RFC8224}}, {{RFC8225}}, {{RFC8226}}) establishes that a signer is authorized for the telephone numbers or service provider codes carried in the TNAuthList certificate extension {{RFC8226}}, validated through the STIR certificate chain. This authority may be held by an entity to which numbers have been assigned, including through delegation {{RFC9060}}, or by a provider identified by a service provider code. However, STIR does not establish a verifiable identity for the entity that holds this authority, nor does it bind that identity to an Internet identifier that a relying party can recognize across contexts.
 
 A domain name is a stable, globally unique Internet identifier for which well-established mechanisms exist to prove control. If a STIR certificate could attest that the entity authorized for a set of telephone numbers or service provider codes is the same entity that controls a particular domain, a relying party would gain an independent, corroborating identity signal bound to that authority. For a certificate carrying telephone numbers, the domain identifies the right-to-use holder for those numbers. For a certificate carrying a service provider code, the domain identifies the provider. In both cases the value of the binding depends entirely on the two facts being established independently and then bound together by the issuer, rather than merely asserted by the subject.
+
+The need for this binding is specific to identifiers that carry no inherent domain association. A telephone number is administered independently of the DNS, so nothing in the number indicates which domain, if any, is associated with its holder. An identifier already expressed in URI form, such as a SIP URI in a PASSporT `orig` or `dest` field {{RFC8225}}, carries its domain as part of the identifier and its authority is the domain owner, so no issuance-time binding is required to associate the two. This document therefore addresses TNAuthList authority, where the association does not exist unless an issuer establishes it.
 
 This document defines that binding. It specifies how an issuing Certification Authority co-validates the TNAuthList authority and domain control within a single issuance, what the resulting certificate contains, and how a relying party verifies the binding. The mechanism reuses existing components without modification: TNAuthList authority via authority tokens ({{RFC9447}}, {{RFC9448}}) and domain control validation via existing challenge mechanisms such as those defined for ACME {{RFC8555}}. The contribution of this document is the requirement that these two proofs be bound together at issuance and the verification rule that relies on that binding.
 
@@ -192,18 +194,18 @@ A bound certificate MAY additionally carry the JWTClaimConstraints extension of 
 
 This document associates no new semantics with the Subject distinguished name and does not require organizational identity to be present in the certificate. The domain identifier in the SubjectAltName is the identifier this document binds to the TNAuthList authority.
 
-The domain identifier is carried in the SubjectAltName, not in the Subject Common Name, consistent with current PKI practice of conveying domain identity in the SubjectAltName rather than the Common Name. This binding adds a SubjectAltName dNSName entry and neither relies on nor alters the Subject distinguished name. It is therefore compatible with certificate profiles that specify Subject Common Name content for their own purposes, such as the SHAKEN profile (ATIS-1000074, ATIS-1000080, ATIS-1000084), which uses the Common Name to mark a certificate as a SHAKEN certificate. A certificate may carry such Common Name content and a bound domain identifier in its SubjectAltName without conflict.
+The domain identifier is carried in the SubjectAltName, not in the Subject Common Name, consistent with current PKI practice of conveying domain identity in the SubjectAltName rather than the Common Name. This binding adds a SubjectAltName dNSName entry and neither relies on nor alters the Subject distinguished name. It is therefore compatible with certificate profiles that specify Subject Common Name content for their own purposes; a certificate may carry such Common Name content and a bound domain identifier in its SubjectAltName without conflict.
 
 ## Examples
 
 The following examples illustrate the two principal cases. The certificate fields are shown in the textual style produced by common certificate tooling, omitting fields not relevant to the binding. The TNAuthList extension is identified by the object identifier id-pe-TNAuthList (1.3.6.1.5.5.7.1.26) and its value is the DER encoding of the TNAuthorizationList structure defined in {{RFC8226}}; because most tooling does not decode this extension natively, both the decoded contents and the DER octets are shown. Values are illustrative.
 
-The first example is a certificate issued to a service provider. Its TNAuthList carries a single service provider code, and its SubjectAltName carries the domain that identifies that provider. The Common Name marks it as a SHAKEN certificate, illustrating coexistence with the SHAKEN profile.
+The first example is a certificate issued to a service provider. Its TNAuthList carries a single service provider code, and its SubjectAltName carries the domain that identifies that provider.
 
 ~~~
 Certificate:
     Data:
-        Subject: CN=SHAKEN, O=Example Communications Inc
+        Subject: O=Example Communications Inc
         X509v3 extensions:
             X509v3 Subject Alternative Name:
                 DNS:example-comms.net
@@ -256,7 +258,7 @@ A certificate MAY carry both telephone number entries and service provider code 
 
 A relying party that validates a bound certificate, in addition to the STIR certificate validation procedures defined in {{RFC8224}} and {{RFC8226}}, MUST apply the following.
 
-The relying party MUST validate the certificate chain to a trusted STIR trust anchor. Where the certificate carries an embedded Signed Certificate Timestamp, the relying party validates it as it would for any STIR certificate.
+The relying party MUST validate the certificate chain to a trusted STIR trust anchor.
 
 The relying party MUST treat the domain identifier in the SubjectAltName dNSName entry as the identity of the entity holding the TNAuthList authority in the certificate only when the certificate is valid under the above checks. The domain identifier carries this meaning by virtue of the issuance binding; a relying party MUST NOT infer TNAuthList authority from the domain identifier independently of the TNAuthList, nor infer domain association for any telephone number or service provider code not present in the TNAuthList.
 
