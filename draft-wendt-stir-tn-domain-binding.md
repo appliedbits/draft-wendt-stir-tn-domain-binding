@@ -131,7 +131,7 @@ The subject proves control of the domain identifier that will appear in the Subj
 - dns-01: the subject provisions a DNS TXT record containing a key-authorization value under a well-known name in the zone of the domain. This proves control of the zone.
 - http-01: the subject serves a key-authorization value at a well-known path under the domain. This proves control of content served at the domain.
 
-Either challenge is sufficient on its own. The choice follows existing ACME practice and is operational.
+Either challenge is sufficient on its own. The choice follows existing ACME practice and is operational. This document does not restrict the set of usable challenge types: any domain control validation challenge standardized for ACME, including mechanisms that may be defined in the future, is equally applicable, provided it demonstrates current authorized control of the domain.
 
 Domain control verification is an explicit, cryptographically demonstrable signal. The operational act of provisioning the required records in public DNS, or serving the required content under the domain, demonstrates current authorized control of the domain by the party performing it. This is distinct from the broader entity verification, often referred to as know-your-customer (KYC), through which a provider or authority establishes the customer relationship that associates a real-world entity with its domain. That verification is out of scope here and is neither defined nor replaced by this document. This document relies on domain control and telephone number authority as explicit signals, and depends on, rather than specifies, the entity verification they rest on.
 
@@ -181,6 +181,8 @@ The CA MUST validate a TNAuthList authority token covering the telephone numbers
 The CA MUST treat the two validations as a single atomic condition for issuance. If either the domain control validation or the TNAuthList authority token validation fails, the CA MUST NOT issue the certificate. The CA MUST NOT issue a certificate that carries a domain identifier without a corresponding validated TNAuthList authority, nor one that carries TNAuthList authority bound to an unvalidated domain identifier.
 
 The two validations MAY be performed in any order within the issuance, and MAY reuse a recent prior domain control validation for the same domain identifier and the same subject account, provided the reused validation is within the validity window permitted by the CA's policy. Reuse of a prior TNAuthList authority token validation is NOT permitted; a token MUST be validated for each issuance.
+
+This document does not mandate a particular issuance protocol. The challenge and authority token mechanisms defined for ACME are used and RECOMMENDED here because they are established and deployed, but other automated certificate issuance protocols could be adapted to satisfy the requirements above, provided they perform the same two validations and treat them as a single atomic condition for issuance. Because the currency of the binding depends on how often those validations are repeated, automated issuance is RECOMMENDED in any case. For the same reason, bound certificates SHOULD be short-lived, as described in {{I-D.ietf-stir-certificates-shortlived}}, so that domain control and telephone number authority are revalidated on a frequent basis.
 
 # Certificate Profile
 
